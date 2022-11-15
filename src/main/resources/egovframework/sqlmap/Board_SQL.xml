@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+
+<sqlMap namespace="BoardSpace">
+	
+	<typeAlias  alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+	<typeAlias  alias="boardVO" type="main.service.BoardVO"/>
+
+	<insert id="boardDAO.insertBoard">
+		INSERT INTO board(unq, title, pass, name, content, hits, rdate) 
+		VALUES(board_seq.nextval,
+		#title#,
+		#pass#,
+		#name#,
+		#content#,
+		0,
+		sysdate )
+	</insert>
+	<!-- SELECT문 출력형태 list => egovMap // 어떤 정보 => vo // 숫자 => java.lang.Integer -->
+	<!-- CDATA: 부등호 에러 해결 // like: 검색, 홑따옴표 퍼센트 ||로 연결처리 -->
+	<select id="boardDAO.selectBoardList" resultClass="egovMap">
+		
+		SELECT b.* FROM (
+		  SELECT rownum rn, a.* FROM (
+		    SELECT  unq,
+	                title,
+	                name,
+	                content,
+	                hits,
+	                to_char(rdate,'yyyy-mm-dd') rdate
+		    
+		    FROM    board
+            
+            <isNotNull property="searchGubun"> <!-- null아닌 경우만 코드 진행 -->
+            	<isNotNull property="searchText">
+                    WHERE $searchGubun$ like '%$searchText$%'
+                </isNotNull>
+	        </isNotNull>
+	        ORDER BY unq DESC ) a ) b
+		WHERE 
+		    rn >= #startIndex# and rn <![CDATA[<=]]> #endIndex# <!-- CDATA 부등호 주석처리 아이바티스 문법 안씀 -->
+	</select>
+	
+	<select id="boardDAO.selectBoardTotal" resultClass="java.lang.Integer">
+		SELECT COUNT(*) total FROM board
+				<isNotNull property="searchGubun"> <!-- null아닌 경우만 코드 진행 -->
+	            	<isNotNull property="searchText">
+	                    WHERE $searchGubun$ like '%$searchText$%'
+	                </isNotNull>
+		        </isNotNull>
+	</select>
+	
+	<select id="boardDAO.selectBoardDetail" resultClass="boardVO">
+		SELECT unq, title, pass, name, content, hits, to_char(rdate,'yyyy-mm-dd') rdate 
+		FROM board 
+		WHERE unq=#unq#
+	</select>
+	
+	<update id="boardDAO.updateBoardHits">
+		UPDATE board SET hits=hits+1 where unq=#unq#
+	</update>
+	
+	<update id="boardDAO.updateBoard">
+		UPDATE board SET title=#title#, name=#name#, content=#content# where unq=#unq#
+	</update>
+	
+	<select id="boardDAO.selectBoardPass" resultClass="java.lang.Integer">
+		SELECT COUNT(*) FROM board WHERE unq=#unq# AND pass=#pass#
+	</select>
+	
+	<delete id="boardDAO.deleteBoard">
+		DELETE FROM board WHERE unq=#unq# AND pass=#pass#
+	</delete>
+</sqlMap>
